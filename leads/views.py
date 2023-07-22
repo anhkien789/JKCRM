@@ -97,6 +97,9 @@ class LeadCreateView(OrganisorAndLoginRequiredMixin, generic.CreateView):
         return resolve_url("leads:lead-list")
     
     def form_valid(self, form):
+        lead = form.save(commit=False)
+        lead.organisation = self.request.user.userprofile
+        lead.save()
         # TODO send email
         send_mail(subject="A lead has been created", message="Go to the side to see new lead", from_email="test@test.com", recipient_list=["test2@test.com"])
         return super(LeadCreateView, self).form_valid(form)
