@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.views import generic
 from agents.mixins import OrganisorAndLoginRequiredMixin
 from .models import Lead, Agent, Category
-from .forms import LeadForm, LeadModelForm, CustomUserCreationForm, AssignAgentForm, LeadCategoryUpdateForm
+from .forms import LeadForm, LeadModelForm, CustomUserCreationForm, AssignAgentForm, LeadCategoryUpdateForm, CategoryModelForm
 
 # Create your views here.
 class SignupView(generic.CreateView):
@@ -236,6 +236,64 @@ class CategoryDetailView(LoginRequiredMixin, generic.DetailView):
 
         return queryset
 
+class CategoryCreateView(OrganisorAndLoginRequiredMixin, generic.CreateView):
+    template_name = "leads/category_create.html"
+    form_class = CategoryModelForm
+
+    def get_success_url(self) -> str:
+        return resolve_url("leads:category-list")
+    
+    def form_valid(self, form):
+        category = form.save(commit=False)
+        category.organisation = self.request.user.userprofile
+        category.save()
+        return super(CategoryCreateView, self).form_valid(form)
+
+class CategoryUpdateView(OrganisorAndLoginRequiredMixin, generic.UpdateView):
+    template_name = "leads/category_update.html"
+    form_class = CategoryModelForm
+
+    def get_queryset(self):
+        user = self.request.user
+
+        #initial queryset of leads for the entire organisation
+        if user.is_organisor:
+            queryset = Category.objects.filter(
+                organisation=user.userprofile
+            )
+        else:
+            queryset = Category.objects.filter(
+                organisation=user.agent.organisation
+            )
+
+        return queryset
+
+
+    def get_success_url(self) -> str:
+        return resolve_url("leads:category-list")
+
+class CategoryDeleteView(OrganisorAndLoginRequiredMixin, generic.DeleteView):
+    template_name = "leads/category_delete.html"
+
+    def get_success_url(self) -> str:
+        return resolve_url("leads:category-list")
+    
+    def get_queryset(self):
+        user = self.request.user
+
+        #initial queryset of leads for the entire organisation
+        if user.is_organisor:
+            queryset = Category.objects.filter(
+                organisation=user.userprofile
+            )
+        else:
+            queryset = Category.objects.filter(
+                organisation=user.agent.organisation
+            )
+
+        return queryset
+
+
 class LeadCategoryUpdateView(LoginRequiredMixin, generic.UpdateView):
     template_name = "leads/lead_category_update.html"
     form_class = LeadCategoryUpdateForm
@@ -255,47 +313,3 @@ class LeadCategoryUpdateView(LoginRequiredMixin, generic.UpdateView):
 
     def get_success_url(self):
         return resolve_url("leads:lead-detail", pk=self.get_object().id)
-
-
-# def lead_update(request, pk):
-#     lead = Lead.objects.get(id=pk)
-#     form = LeadForm()
-#     if request.method == "POST":
-#         form = LeadForm(request.POST)
-#         if form.is_valid():
-#             first_name = form.cleaned_data['first_name']
-#             last_name = form.cleaned_data['last_name']
-#             age = form.cleaned_data['age']
-
-#             lead.first_name = first_name
-#             lead.last_name = last_name
-#             lead.age = age
-
-#             lead.save()
-#             return redirect('/leads')
-#     context = {
-#         "form": form,
-#         "lead": lead,
-#     }
-#     return render(request, "leads/lead_update.html", context)
-
-# def lead_create(request):
-#     form = LeadForm()
-#     if request.method == "POST":
-#         form = LeadForm(request.POST)
-#         if form.is_valid():
-#             first_name = form.cleaned_data['first_name']
-#             last_name = form.cleaned_data['last_name']
-#             age = form.cleaned_data['age']
-#             agent = Agent.objects.first()
-#             Lead.objects.create(
-#                 first_name=first_name,
-#                 last_name=last_name,
-#                 age=age,
-#                 agent=agent
-#             )
-#             return redirect('/leads')
-#     context = {
-#         "form": form
-#     }
-#     return render(request, "leads/lead_create.html", context)
