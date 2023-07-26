@@ -1,6 +1,6 @@
 # JKCRM
 
-Portfolio for CRM appication
+Portfolio for CRM application where help you to manage your leads and agents.
 
 # Settings
 
